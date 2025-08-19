@@ -1,28 +1,73 @@
-import { useState, useEffect } from 'react'
-import JokeDisplay from './components/JokeDisplay'
-import FetchButton from './components/FetchButton'
+import { useEffect, useState } from "react";
 
 function App() {
-  // Step 1: Create state variables for `joke` and `loading`
+  // I’m keeping state simple and readable for a beginner setup:
+  // - joke: the actual joke text to show in <p>
+  // - isLoading: controls loading text and button disabled state
+  // - error: shows a friendly message if the request fails
+  const [joke, setJoke] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Step 2: Use `useEffect` to call a function that fetches a joke when the component mounts
+  // This function fetches one programming joke from the given API.
+  async function fetchJoke() {
+    setIsLoading(true);
+    setError(null);
 
-  // Step 3: Define a function that fetches a programming joke from an API
-  // - Start by setting `loading` to true
-  // - Fetch a joke from "https://v2.jokeapi.dev/joke/Programming?type=single"
-  // - Update the `joke` state with the fetched joke
-  // - Set `loading` to false once the joke is loaded
-  // - Handle any errors in the `.catch` block
+    try {
+      const res = await fetch(
+        "https://v2.jokeapi.dev/joke/Programming?type=single"
+      );
+
+      if (!res.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await res.json();
+      // The API returns { joke: "..." } when type=single
+      setJoke(data.joke || "No joke received from the server.");
+    } catch (err) {
+      // Beginner-friendly, non-technical message for the UI:
+      setError("Sorry, something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Run once on mount to load the first joke.
+  // Empty dependency array means "only when the component first renders".
+  useEffect(() => {
+    fetchJoke();
+    // No cleanup is needed here because we are not subscribing to anything.
+  }, []);
 
   return (
-    <div className="app">
+    <main
+      style={{
+        fontFamily: "system-ui, Arial, sans-serif",
+        maxWidth: "700px",
+        margin: "40px auto",
+        padding: "16px",
+        lineHeight: 1.5,
+      }}
+    >
       <h1>Programming Jokes</h1>
-      {/* Step 4: Pass the necessary props to JokeDisplay */}
-      <JokeDisplay />
-      {/* Step 5: Pass the function to FetchButton so it can fetch a new joke on click */}
-      <FetchButton />
-    </div>
-  )
+
+      {/* Only ONE button in the UI */}
+      <button onClick={fetchJoke} disabled={isLoading} style={{ marginBottom: 12 }}>
+        {isLoading ? "Loading..." : "New Joke"}
+      </button>
+
+      {/* Only ONE <p> that contains the joke (or loading/error message) */}
+      <p aria-live="polite">
+        {isLoading
+          ? "Loading a programming joke..."
+          : error
+            ? error
+            : joke}
+      </p>
+    </main>
+  );
 }
 
-export default App
+export default App;

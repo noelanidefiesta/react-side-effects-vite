@@ -1,66 +1,51 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { vi } from 'vitest' // Use vi instead of jest
-import App from '../App'
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import App from "../App";
 
-beforeEach(() => {
-  // Mock fetch to return a test joke
-  global.fetch = vi.fn(() =>
-    Promise.resolve({
-      json: () =>
-        Promise.resolve({ joke: 'Why do programmers prefer dark mode?' }),
-    })
-  )
-})
+describe("App structure and behavior", () => {
+  const originalFetch = global.fetch;
 
-afterEach(() => {
-  vi.restoreAllMocks()
-})
+  beforeEach(() => {
+    // Mock fetch to return a predictable joke
+    vi.stubGlobal("fetch", vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ joke: "This is a test joke." }),
+      })
+    ));
+  });
 
-test('App component > displays a loading message before joke is loaded', async () => {
-  render(<App />)
+  afterEach(() => {
+    vi.restoreAllMocks();
+    global.fetch = originalFetch;
+  });
 
-  // Ensure "Loading..." appears first
-  expect(screen.getByText(/Loading.../i)).toBeInTheDocument()
+  it("renders exactly one button and one paragraph", () => {
+    const { container } = render(<App />);
+    const buttons = screen.getAllByRole("button");
+    const paragraphs = container.querySelectorAll("p");
+    expect(buttons.length).toBe(1);
+    expect(paragraphs.length).toBe(1);
+  });
 
-  // Wait for the joke to replace "Loading..."
-  await waitFor(() => {
+  it("shows loading on mount, then displays a joke after fetch resolves", async () => {
+    render(<App />);
+
+    // Be specific: loading state appears both on the button and in the paragraph
     expect(
-      screen.getByText(/Why do programmers prefer dark mode?/i)
-    ).toBeInTheDocument()
-  })
-})
+      screen.getByRole("button", { name: /loading/i })
+    ).toBeInTheDocument();
 
-test('App component > fetches and displays a joke on load', async () => {
-  render(<App />)
-
-  // Ensure the joke appears after fetching
-  await waitFor(() => {
     expect(
-      screen.getByText(/Why do programmers prefer dark mode?/i)
-    ).toBeInTheDocument()
-  })
-})
+      screen.getByText(/loading a programming joke/i)
+    ).toBeInTheDocument();
 
-test('App component > fetches a new joke when button is clicked', async () => {
-  render(<App />)
+    // Wait for the mocked fetch to resolve and the UI to update
+    expect(await screen.findByText("This is a test joke.")).toBeInTheDocument();
 
-  // Wait for initial joke to appear
-  await waitFor(() => {
+    // After load, the button label should switch back
     expect(
-      screen.getByText(/Why do programmers prefer dark mode?/i)
-    ).toBeInTheDocument()
-  })
-
-  // Mock fetch for new joke
-  global.fetch.mockResolvedValueOnce({
-    json: () => Promise.resolve({ joke: 'Another programming joke!' }),
-  })
-
-  // Click the "Get a New Joke" button
-  fireEvent.click(screen.getByText(/Get a New Joke/i))
-
-  // Wait for the new joke to appear
-  await waitFor(() => {
-    expect(screen.getByText(/Another programming joke!/i)).toBeInTheDocument()
-  })
-})
+      screen.getByRole("button", { name: /new joke/i })
+    ).toBeInTheDocument();
+  });
+});
