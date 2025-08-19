@@ -29,3 +29,5 @@ Before you start building out the application, examine the current code and comp
 - Manage component state using the `useState` hook.
 - Keep components modular and reusable.
 - Remove unnecessary console logs and commented-out code before submission.
+
+Second push for CodeGrade purposes
